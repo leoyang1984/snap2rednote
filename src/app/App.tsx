@@ -13,6 +13,7 @@ import { useAppStore } from "../lib/store";
 import type { CropRect, GeneratedImage } from "../types";
 
 export function App() {
+  const importedImages = useAppStore((state) => state.importedImages);
   const importedImage = useAppStore((state) => state.importedImage);
   const ratio = useAppStore((state) => state.ratio);
   const cropMode = useAppStore((state) => state.cropMode);
@@ -24,7 +25,7 @@ export function App() {
   const notice = useAppStore((state) => state.notice);
 
   const generateImages = useCallback(async () => {
-    if (!importedImage) {
+    if (!importedImages.length) {
       setGeneratedImages([]);
       return;
     }
@@ -32,25 +33,40 @@ export function App() {
     try {
       const targetRatio = ratio.width / ratio.height;
       const outputSize = getOutputSize(ratio.width, ratio.height);
-      const rects = getCropRects(importedImage.width, importedImage.height, targetRatio, cropMode, manualCropRect);
 
       const generatedImages: GeneratedImage[] = [];
-      for (let index = 0; index < rects.length; index += 1) {
-        const canvas = await renderImage(importedImage, rects[index], outputSize, style);
-        generatedImages.push({
-          id: crypto.randomUUID(),
-          index,
-          canvas,
-          width: canvas.width,
-          height: canvas.height
-        });
+      for (let sourceIndex = 0; sourceIndex < importedImages.length; sourceIndex += 1) {
+        const sourceImage = importedImages[sourceIndex];
+        const sourceManualCropRect = sourceImage.id === importedImage?.id ? manualCropRect : null;
+        const rects = getCropRects(
+          sourceImage.width,
+          sourceImage.height,
+          targetRatio,
+          cropMode,
+          sourceManualCropRect
+        );
+
+        for (let sliceIndex = 0; sliceIndex < rects.length; sliceIndex += 1) {
+          const canvas = await renderImage(sourceImage, rects[sliceIndex], outputSize, style);
+          generatedImages.push({
+            id: crypto.randomUUID(),
+            index: generatedImages.length,
+            sourceImageId: sourceImage.id,
+            sourceIndex,
+            sourceName: sourceImage.name,
+            sliceIndex,
+            canvas,
+            width: canvas.width,
+            height: canvas.height
+          });
+        }
       }
 
       setGeneratedImages(generatedImages);
     } catch (error) {
       setError(error instanceof Error ? error.message : "Canvas 渲染失败。");
     }
-  }, [cropMode, importedImage, manualCropRect, ratio, setError, setGeneratedImages, style]);
+  }, [cropMode, importedImage?.id, importedImages, manualCropRect, ratio, setError, setGeneratedImages, style]);
 
   useEffect(() => {
     void generateImages();

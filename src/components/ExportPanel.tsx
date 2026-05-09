@@ -28,7 +28,7 @@ export function ExportPanel() {
         <button
           disabled={!selectedImage}
           type="button"
-          onClick={() => selectedImage && void runExport(() => downloadCanvas(selectedImage.canvas, getImageFilename(selectedImage.index)))}
+          onClick={() => selectedImage && void runExport(() => downloadCanvas(selectedImage.canvas, getImageFilename(selectedImage)))}
         >
           <Download size={16} />
           导出当前 PNG

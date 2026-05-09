@@ -56,7 +56,7 @@ export async function downloadGeneratedImages(images: GeneratedImage[]) {
 
   for (const image of images) {
     const blob = await canvasToBlob(image.canvas);
-    downloadBlob(blob, getImageFilename(image.index));
+    downloadBlob(blob, getImageFilename(image));
   }
 }
 
@@ -65,8 +65,15 @@ export async function copyCanvasToClipboard(canvas: HTMLCanvasElement) {
   await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
 }
 
-export function getImageFilename(index: number) {
-  return `rednote-shot-${String(index + 1).padStart(2, "0")}.png`;
+export function getImageFilename(imageOrIndex: GeneratedImage | number) {
+  if (typeof imageOrIndex === "number") {
+    return `rednote-shot-${String(imageOrIndex + 1).padStart(2, "0")}.png`;
+  }
+
+  const sourceNumber = String(imageOrIndex.sourceIndex + 1).padStart(2, "0");
+  const sliceNumber = String(imageOrIndex.sliceIndex + 1).padStart(2, "0");
+  const baseName = sanitizeFilename(imageOrIndex.sourceName.replace(/\.[^.]+$/, "")) || "shot";
+  return `rednote-${sourceNumber}-${baseName}-${sliceNumber}.png`;
 }
 
 async function trySaveCanvasWithTauri(canvas: HTMLCanvasElement, filename: string) {
@@ -132,7 +139,7 @@ async function trySaveGeneratedImagesWithTauri(images: GeneratedImage[]) {
 
   const files: ExportedPng[] = await Promise.all(
     images.map(async (image) => ({
-      filename: getImageFilename(image.index),
+      filename: getImageFilename(image),
       dataBase64: await canvasToPngBase64(image.canvas)
     }))
   );
@@ -211,4 +218,13 @@ async function writeBlobToHandle(handle: FileSystemFileHandle, blob: Blob) {
   const writable = await handle.createWritable();
   await writable.write(blob);
   await writable.close();
+}
+
+function sanitizeFilename(filename: string) {
+  return filename
+    .trim()
+    .replace(/[\\/:*?"<>|]+/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 80);
 }

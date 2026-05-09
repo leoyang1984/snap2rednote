@@ -30,11 +30,10 @@ source "$HOME/.cargo/env"
 npm run tauri build
 ```
 
-当前打包产物：
+当前应用产物：
 
 ```txt
 src-tauri/target/release/bundle/macos/Rednote Screenshot Cropper.app
-src-tauri/target/release/bundle/dmg/Rednote Screenshot Cropper_0.1.0_aarch64.dmg
 ```
 
 ## 已完成
@@ -47,8 +46,11 @@ src-tauri/target/release/bundle/dmg/Rednote Screenshot Cropper_0.1.0_aarch64.dmg
 - 实现图片导入：
   - 拖拽导入
   - 点击选择图片
+  - 点击选择多张图片
+  - 拖拽多张图片
   - 剪贴板按钮读取
   - `Command+V` 粘贴图片兜底
+  - 清空当前任务，重置导入图片、生成结果、手动选区和提示状态
 - 支持输出比例：
   - `1:1`
   - `3:4`
@@ -73,8 +75,13 @@ src-tauri/target/release/bundle/dmg/Rednote Screenshot Cropper_0.1.0_aarch64.dmg
   - 标题及标题位置
 - 实现导出：
   - 导出当前 PNG
-  - 批量导出
+  - 批量导出全部生成结果
   - 复制当前图到剪贴板
+- 实现多图导入队列：
+  - 一次选择或拖拽多张图片后统一生成结果
+  - 右侧结果列表显示所有原图生成的 PNG
+  - 批量导出会保存所有结果图
+  - 导出文件名包含原图顺序、原图名称和切片序号，减少重名覆盖
 - 增强桌面版原生导出：
   - Tauri 环境下导出当前 PNG 会打开系统保存对话框
   - Tauri 环境下批量导出会先打开系统目录选择框
@@ -156,6 +163,23 @@ Chrome 对 `showSaveFilePicker()` 有用户激活限制。之前先 `await canva
 - `src-tauri/src/lib.rs`
 - `src-tauri/capabilities/default.json`
 
+### 多图导入和批量导出
+
+最初导入入口只读取 `files[0]`，所以点击选择和拖拽都只能导入第一张图片。当前实现为：
+
+- 文件选择框增加 `multiple`。
+- 拖拽和点击选择都会读取完整 `FileList`。
+- 状态中保存 `importedImages` 队列和当前预览原图。
+- 生成结果时遍历所有导入图片。
+- 手动裁剪框只应用于当前预览原图；其他图片在手动裁剪模式下会使用居中裁剪兜底。
+
+相关文件：
+
+- `src/components/ImportPanel.tsx`
+- `src/lib/store.ts`
+- `src/app/App.tsx`
+- `src/lib/exportEngine.ts`
+
 ### 应用图标
 
 最初 `tauri.conf.json` 的 `bundle.icon` 为空，打包出的 macOS 应用没有图标。当前已补齐：
@@ -172,7 +196,6 @@ Chrome 对 `showSaveFilePicker()` 有用户激活限制。之前先 `await canva
 ```bash
 npm run test
 npm run build
-npm run tauri build
 ```
 
 测试结果：
@@ -184,8 +207,8 @@ npm run tauri build
 
 - TypeScript 类型检查通过
 - Vite production build 通过
-- Tauri release build 通过
-- macOS `.app` / `.dmg` 打包通过
+- Tauri release build 通过并生成 `.app`
+- 当前环境本轮 DMG 脚本在最后打包阶段失败，但 `.app` 已生成并可安装使用
 
 浏览器验证：
 
@@ -199,7 +222,7 @@ npm run tauri build
 
 - Rust / Cargo 已安装并可用。
 - `npm run tauri dev` 已跑通。
-- `npm run tauri build` 已跑通。
+- `npm run tauri build` 已生成 release `.app`。
 - `/Applications/Rednote Screenshot Cropper.app` 已安装替换并可启动。
 - App bundle 中已验证 `CFBundleIconFile = icon.icns`。
 
@@ -216,8 +239,9 @@ npm run tauri build
 
 ## 下次建议开发顺序
 
-1. 实机再检查桌面版单张导出、批量导出、复制当前图三个流程。
+1. 实机再检查桌面版多图导入、单张导出、批量导出、复制当前图四个流程。
 2. 优化导出成功提示，让桌面版和网页端提示文案区分开。
+3. 排查当前环境中 DMG 最后打包脚本失败原因。
 3. 优化手动裁剪细节：尺寸显示、重置选区、键盘微调。
 4. 优化长图分段生成性能，避免大图同步渲染时 UI 卡顿。
 5. 补更多验收测试和错误场景测试。

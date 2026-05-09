@@ -36,6 +36,10 @@ export interface CropRect {
 export interface GeneratedImage {
   id: string;
   index: number;
+  sourceImageId: string;
+  sourceIndex: number;
+  sourceName: string;
+  sliceIndex: number;
   canvas: HTMLCanvasElement;
   width: number;
   height: number;

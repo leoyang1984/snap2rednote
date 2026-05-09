@@ -26,7 +26,10 @@ export function PreviewCanvas() {
   const selectedGeneratedImageId = useAppStore((state) => state.selectedGeneratedImageId);
   const manualCropRect = useAppStore((state) => state.manualCropRect);
   const setManualCropRect = useAppStore((state) => state.setManualCropRect);
-  const selectedImage = generatedImages.find((image) => image.id === selectedGeneratedImageId) ?? generatedImages[0];
+  const selectedImage =
+    generatedImages.find((image) => image.id === selectedGeneratedImageId) ??
+    generatedImages.find((image) => image.sourceImageId === importedImage?.id) ??
+    generatedImages[0];
 
   const previewUrl = useMemo(() => {
     if (!selectedImage) return "";

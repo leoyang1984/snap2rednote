@@ -10,7 +10,6 @@
 
 ```txt
 src-tauri/target/release/bundle/macos/Rednote Screenshot Cropper.app
-src-tauri/target/release/bundle/dmg/Rednote Screenshot Cropper_0.1.0_aarch64.dmg
 ```
 
 安装到系统应用目录：
@@ -58,11 +57,14 @@ npm run tauri build
 ## 当前 MVP
 
 - 拖拽、点击选择、剪贴板粘贴图片
+- 点击选择和拖拽支持一次导入多张图片
+- 一键清空当前导入和生成结果，方便开始下一批任务
 - `1:1`、`3:4`、`4:5`、`9:16` 和自定义比例
 - 居中裁剪、顶部优先裁剪、手动选区、自动分段切图
 - 背景色、留白、圆角、阴影、标题
 - 网页端导出当前图、批量导出、复制当前预览图
 - macOS 本地应用原生保存当前 PNG、批量选择目录导出
+- 批量导出会导出所有已导入图片生成的结果；长截图分段模式下，每张原图可能生成多张 PNG
 - macOS 应用图标和 DMG 打包
 
 ## 许可证

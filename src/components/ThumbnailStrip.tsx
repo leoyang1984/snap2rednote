@@ -13,7 +13,7 @@ export function ThumbnailStrip() {
     () =>
       generatedImages.map((image) => ({
         id: image.id,
-        index: image.index,
+        filename: getImageFilename(image),
         url: image.canvas.toDataURL("image/png")
       })),
     [generatedImages]
@@ -33,8 +33,8 @@ export function ThumbnailStrip() {
               key={thumbnail.id}
             >
               <button type="button" onClick={() => selectGeneratedImage(thumbnail.id)}>
-                <img alt={getImageFilename(thumbnail.index)} src={thumbnail.url} />
-                <span>{getImageFilename(thumbnail.index)}</span>
+                <img alt={thumbnail.filename} src={thumbnail.url} />
+                <span>{thumbnail.filename}</span>
               </button>
               <button
                 className="delete-thumb"
