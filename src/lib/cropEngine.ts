@@ -1,6 +1,8 @@
 import { DEFAULT_OUTPUT_WIDTH } from "./constants";
 import type { CropRect } from "../types";
 
+export type ResizeHandle = "nw" | "ne" | "sw" | "se";
+
 export function getOutputSize(ratioWidth: number, ratioHeight: number) {
   const width = DEFAULT_OUTPUT_WIDTH;
   const height = Math.round((width * ratioHeight) / ratioWidth);
@@ -50,6 +52,49 @@ export function clampCropRect(rect: CropRect, imageWidth: number, imageHeight: n
     y: Math.min(Math.max(0, rect.y), imageHeight - height),
     width,
     height
+  };
+}
+
+export function resizeCropRectFromHandle({
+  rect,
+  handle,
+  deltaX,
+  deltaY,
+  targetRatio,
+  imageWidth,
+  imageHeight,
+  minWidth = 80
+}: {
+  rect: CropRect;
+  handle: ResizeHandle;
+  deltaX: number;
+  deltaY: number;
+  targetRatio: number;
+  imageWidth: number;
+  imageHeight: number;
+  minWidth?: number;
+}): CropRect {
+  const growsEast = handle.includes("e");
+  const growsSouth = handle.includes("s");
+  const anchorX = growsEast ? rect.x : rect.x + rect.width;
+  const anchorY = growsSouth ? rect.y : rect.y + rect.height;
+  const widthFromHorizontalDrag = growsEast ? rect.width + deltaX : rect.width - deltaX;
+  const heightFromVerticalDrag = growsSouth ? rect.height + deltaY : rect.height - deltaY;
+  const widthFromVerticalDrag = heightFromVerticalDrag * targetRatio;
+  const horizontalChange = Math.abs(widthFromHorizontalDrag - rect.width);
+  const verticalChange = Math.abs(widthFromVerticalDrag - rect.width);
+  const desiredWidth = horizontalChange >= verticalChange ? widthFromHorizontalDrag : widthFromVerticalDrag;
+  const maxWidthByX = growsEast ? imageWidth - anchorX : anchorX;
+  const maxHeightByY = growsSouth ? imageHeight - anchorY : anchorY;
+  const maxWidth = Math.max(1, Math.min(maxWidthByX, maxHeightByY * targetRatio));
+  const nextWidth = Math.min(Math.max(minWidth, desiredWidth), maxWidth);
+  const nextHeight = nextWidth / targetRatio;
+
+  return {
+    x: growsEast ? anchorX : anchorX - nextWidth,
+    y: growsSouth ? anchorY : anchorY - nextHeight,
+    width: nextWidth,
+    height: nextHeight
   };
 }
 

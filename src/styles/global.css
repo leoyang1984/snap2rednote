@@ -427,6 +427,40 @@ button:disabled {
   position: absolute;
 }
 
+.crop-handle {
+  background: #fff;
+  border: 2px solid #d94d44;
+  border-radius: 50%;
+  height: 14px;
+  padding: 0;
+  position: absolute;
+  width: 14px;
+}
+
+.crop-handle-nw {
+  cursor: nwse-resize;
+  left: -8px;
+  top: -8px;
+}
+
+.crop-handle-ne {
+  cursor: nesw-resize;
+  right: -8px;
+  top: -8px;
+}
+
+.crop-handle-sw {
+  bottom: -8px;
+  cursor: nesw-resize;
+  left: -8px;
+}
+
+.crop-handle-se {
+  bottom: -8px;
+  cursor: nwse-resize;
+  right: -8px;
+}
+
 .crop-overlay::before {
   background: rgba(0, 0, 0, 0.34);
   content: "";

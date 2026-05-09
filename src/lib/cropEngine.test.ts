@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getCenterCropRect, getOutputSize, getSliceRects, getTopCropRect } from "./cropEngine";
+import { getCenterCropRect, getOutputSize, getSliceRects, getTopCropRect, resizeCropRectFromHandle } from "./cropEngine";
 
 describe("cropEngine", () => {
   it("calculates preset output sizes from 1080px width", () => {
@@ -33,5 +33,33 @@ describe("cropEngine", () => {
       { x: 0, y: 1250, width: 1000, height: 1250 },
       { x: 0, y: 1550, width: 1000, height: 1250 }
     ]);
+  });
+
+  it("resizes manual crop from a corner while preserving ratio", () => {
+    expect(
+      resizeCropRectFromHandle({
+        rect: { x: 100, y: 100, width: 400, height: 500 },
+        handle: "se",
+        deltaX: 80,
+        deltaY: 0,
+        targetRatio: 4 / 5,
+        imageWidth: 1000,
+        imageHeight: 1000
+      })
+    ).toEqual({ x: 100, y: 100, width: 480, height: 600 });
+  });
+
+  it("keeps the opposite corner fixed when resizing northwest", () => {
+    expect(
+      resizeCropRectFromHandle({
+        rect: { x: 100, y: 100, width: 400, height: 500 },
+        handle: "nw",
+        deltaX: -80,
+        deltaY: 0,
+        targetRatio: 4 / 5,
+        imageWidth: 1000,
+        imageHeight: 1000
+      })
+    ).toEqual({ x: 20, y: 0, width: 480, height: 600 });
   });
 });
