@@ -1,10 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
-import { open } from "@tauri-apps/plugin-dialog";
+import { open, save } from "@tauri-apps/plugin-dialog";
 import type { GeneratedImage } from "../types";
 
 declare global {
   interface Window {
-    __TAURI_INTERNALS__?: unknown;
     showSaveFilePicker?: (options?: {
       suggestedName?: string;
       types?: Array<{
@@ -33,6 +32,11 @@ export function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
 }
 
 export async function downloadCanvas(canvas: HTMLCanvasElement, filename: string) {
+  const savedWithTauri = await trySaveCanvasWithTauri(canvas, filename);
+  if (savedWithTauri) {
+    return;
+  }
+
   if (window.showSaveFilePicker) {
     const handle = await getSaveFileHandle(filename);
     const blob = await canvasToBlob(canvas);
@@ -65,11 +69,47 @@ export function getImageFilename(index: number) {
   return `rednote-shot-${String(index + 1).padStart(2, "0")}.png`;
 }
 
-async function trySaveGeneratedImagesWithTauri(images: GeneratedImage[]) {
-  if (!window.__TAURI_INTERNALS__) {
-    return false;
+async function trySaveCanvasWithTauri(canvas: HTMLCanvasElement, filename: string) {
+  let path: string | null;
+  try {
+    path = await save({
+      title: "保存 Rednote PNG",
+      defaultPath: filename,
+      filters: [
+        {
+          name: "PNG 图片",
+          extensions: ["png"]
+        }
+      ]
+    });
+  } catch (error) {
+    if (isTauriUnavailableError(error)) {
+      return false;
+    }
+
+    throw error;
   }
 
+  if (!path) {
+    throw new Error("用户取消保存路径选择。");
+  }
+
+  try {
+    await invoke("save_png_file", {
+      path,
+      dataBase64: await canvasToPngBase64(canvas)
+    });
+    return true;
+  } catch (error) {
+    if (isTauriUnavailableError(error)) {
+      return false;
+    }
+
+    throw error;
+  }
+}
+
+async function trySaveGeneratedImagesWithTauri(images: GeneratedImage[]) {
   let directory: string | null;
   try {
     const selected = await open({

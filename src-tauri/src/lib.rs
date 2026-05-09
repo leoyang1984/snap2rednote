@@ -30,6 +30,21 @@ fn save_png_files(directory: String, files: Vec<ExportedPng>) -> Result<usize, S
     Ok(files.len())
 }
 
+#[tauri::command]
+fn save_png_file(path: String, data_base64: String) -> Result<(), String> {
+    let export_path = PathBuf::from(path);
+    let filename = export_path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or_else(|| "导出文件名无效。".to_string())?;
+    sanitize_png_filename(filename)?;
+
+    let bytes = STANDARD
+        .decode(&data_base64)
+        .map_err(|_| format!("{} 不是有效的 PNG 数据。", filename))?;
+    fs::write(&export_path, bytes).map_err(|error| format!("保存 {} 失败：{}", export_path.display(), error))
+}
+
 fn sanitize_png_filename(filename: &str) -> Result<String, String> {
     let basename = PathBuf::from(filename)
         .file_name()
@@ -47,7 +62,7 @@ fn sanitize_png_filename(filename: &str) -> Result<String, String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![save_png_files])
+        .invoke_handler(tauri::generate_handler![save_png_file, save_png_files])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

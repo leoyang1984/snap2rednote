@@ -2,9 +2,9 @@
 
 ## 当前状态
 
-已经完成一个可运行的前端 MVP。应用可以在浏览器中启动，完成从截图导入、裁剪/切图、美化到 PNG 导出的主流程。
+已经完成一个可运行的前端 MVP 和一个可打包的 macOS Tauri 本地应用。应用可以在浏览器中启动，也可以打包为 `.app` / `.dmg` 使用。
 
-本地开发地址：
+网页开发模式：
 
 ```bash
 npm run dev
@@ -14,6 +14,27 @@ npm run dev
 
 ```txt
 http://127.0.0.1:5173/
+```
+
+本地应用开发模式：
+
+```bash
+source "$HOME/.cargo/env"
+npm run tauri dev
+```
+
+正式打包：
+
+```bash
+source "$HOME/.cargo/env"
+npm run tauri build
+```
+
+当前打包产物：
+
+```txt
+src-tauri/target/release/bundle/macos/Rednote Screenshot Cropper.app
+src-tauri/target/release/bundle/dmg/Rednote Screenshot Cropper_0.1.0_aarch64.dmg
 ```
 
 ## 已完成
@@ -54,10 +75,19 @@ http://127.0.0.1:5173/
   - 导出当前 PNG
   - 批量导出
   - 复制当前图到剪贴板
-- 增强桌面版批量导出：
+- 增强桌面版原生导出：
+  - Tauri 环境下导出当前 PNG 会打开系统保存对话框
   - Tauri 环境下批量导出会先打开系统目录选择框
   - 选择目录后通过 Rust command 一次性写入全部 PNG
-  - 浏览器环境下继续使用原有逐张下载兜底
+  - 浏览器环境下继续使用原有浏览器保存 / 下载兜底
+- 完成 macOS 应用打包：
+  - 已生成 `.app`
+  - 已生成 `.dmg`
+  - 已安装替换到 `/Applications/Rednote Screenshot Cropper.app`
+- 增加正式应用图标：
+  - `src-tauri/icons/icon.svg`
+  - `src-tauri/icons/icon.png`
+  - `src-tauri/icons/icon.icns`
 - 增加状态提示：
   - 导入成功提示
   - 导出触发提示
@@ -73,9 +103,12 @@ http://127.0.0.1:5173/
   - `src-tauri/tauri.conf.json`
   - `src-tauri/Cargo.toml`
   - `src-tauri/src/main.rs`
+  - `src-tauri/src/lib.rs`
   - `src-tauri/build.rs`
 - 增加 Tauri dialog 权限配置：
   - `src-tauri/capabilities/default.json`
+- 增加 Rust 依赖锁文件：
+  - `src-tauri/Cargo.lock`
 
 ## 关键修复记录
 
@@ -94,7 +127,7 @@ http://127.0.0.1:5173/
 - `src/lib/imageLoader.ts`
 - `src/components/ImportPanel.tsx`
 
-### Chrome 导出弹窗
+### 浏览器导出弹窗
 
 Chrome 对 `showSaveFilePicker()` 有用户激活限制。之前先 `await canvas.toBlob()` 再打开保存框，会导致 Chrome 不弹窗；Safari 可以正常工作。
 
@@ -109,6 +142,29 @@ Chrome 对 `showSaveFilePicker()` 有用户激活限制。之前先 `await canva
 - `src/lib/exportEngine.ts`
 - `src/components/ExportPanel.tsx`
 
+### Tauri 原生导出
+
+桌面版里浏览器下载 API 不可靠，因此当前实现为：
+
+- 单张导出：调用 `@tauri-apps/plugin-dialog` 的 `save()` 打开系统保存对话框，再通过 Rust command `save_png_file` 写入 PNG。
+- 批量导出：调用 `open({ directory: true })` 选择目录，再通过 Rust command `save_png_files` 写入全部 PNG。
+- 浏览器端：如果 Tauri 调用不可用，会回退到浏览器 `showSaveFilePicker` 或下载链接。
+
+相关文件：
+
+- `src/lib/exportEngine.ts`
+- `src-tauri/src/lib.rs`
+- `src-tauri/capabilities/default.json`
+
+### 应用图标
+
+最初 `tauri.conf.json` 的 `bundle.icon` 为空，打包出的 macOS 应用没有图标。当前已补齐：
+
+- 源图：`src-tauri/icons/icon.svg`
+- PNG：`src-tauri/icons/icon.png`、`32x32.png`、`128x128.png`、`128x128@2x.png`
+- macOS 图标：`src-tauri/icons/icon.icns`
+- 配置：`src-tauri/tauri.conf.json` 的 `bundle.icon`
+
 ## 验证结果
 
 以下命令已通过：
@@ -116,6 +172,7 @@ Chrome 对 `showSaveFilePicker()` 有用户激活限制。之前先 `await canva
 ```bash
 npm run test
 npm run build
+npm run tauri build
 ```
 
 测试结果：
@@ -127,6 +184,8 @@ npm run build
 
 - TypeScript 类型检查通过
 - Vite production build 通过
+- Tauri release build 通过
+- macOS `.app` / `.dmg` 打包通过
 
 浏览器验证：
 
@@ -136,27 +195,15 @@ npm run build
 - 已验证导入后导出按钮解锁。
 - 安装新依赖后，旧 `5173` 开发服务器可能保留 Vite 预构建缓存；已用 `5174 --force` 启动新服务器验证页面正常。
 
+本地应用验证：
+
+- Rust / Cargo 已安装并可用。
+- `npm run tauri dev` 已跑通。
+- `npm run tauri build` 已跑通。
+- `/Applications/Rednote Screenshot Cropper.app` 已安装替换并可启动。
+- App bundle 中已验证 `CFBundleIconFile = icon.icns`。
+
 ## 当前限制
-
-### Tauri 尚未编译验证
-
-当前机器没有 `rustc`：
-
-```txt
-zsh:1: command not found: rustc
-```
-
-因此 Tauri 桌面壳结构已经准备好，但还没有完成本地桌面应用编译验证。
-
-### Tauri 原生批量导出已实现但未编译验证
-
-前端已经接入 `@tauri-apps/plugin-dialog`，Rust 侧已经实现 `save_png_files` command。桌面版预期体验是：
-
-- 批量导出时选择一个导出文件夹
-- 一次性保存全部 PNG
-- 文件名按 `rednote-shot-01.png`、`rednote-shot-02.png` 递增
-
-当前机器没有 Rust 工具链，因此还不能运行 `npm run tauri dev` 做桌面壳实机验证。
 
 ### 手动裁剪仍可继续打磨
 
@@ -169,13 +216,11 @@ zsh:1: command not found: rustc
 
 ## 下次建议开发顺序
 
-1. 安装并验证 Rust/Tauri 工具链。
-2. 跑通 `npm run tauri dev`。
-3. 安装 Rust 后验证 `npm run tauri dev`。
-4. 实机检查桌面版批量导出的目录选择和写入权限。
-5. 优化手动裁剪细节：尺寸显示、重置选区、键盘微调。
-6. 优化长图分段生成性能，避免大图同步渲染时 UI 卡顿。
-7. 补更多验收测试和错误场景测试。
+1. 实机再检查桌面版单张导出、批量导出、复制当前图三个流程。
+2. 优化导出成功提示，让桌面版和网页端提示文案区分开。
+3. 优化手动裁剪细节：尺寸显示、重置选区、键盘微调。
+4. 优化长图分段生成性能，避免大图同步渲染时 UI 卡顿。
+5. 补更多验收测试和错误场景测试。
 
 ## 常用命令
 
@@ -184,12 +229,8 @@ npm install
 npm run dev
 npm run test
 npm run build
-```
-
-Tauri 工具链安装后可尝试：
-
-```bash
 npm run tauri dev
+npm run tauri build
 ```
 
 ## 重要文件索引
@@ -204,13 +245,15 @@ npm run tauri dev
 - 导出逻辑：`src/lib/exportEngine.ts`
 - 核心测试：`src/lib/cropEngine.test.ts`
 - Tauri 配置：`src-tauri/tauri.conf.json`
+- Tauri Rust 入口：`src-tauri/src/lib.rs`
+- 应用图标：`src-tauri/icons/icon.svg`
 
 ## 下次接手提醒
 
-开发服务器可能仍在运行：
+本地应用可能仍在运行。需要重新打包或替换 `/Applications` 时，先退出：
 
-```txt
-http://127.0.0.1:5173/
+```bash
+osascript -e 'quit app "Rednote Screenshot Cropper"'
 ```
 
-如果端口被占用，可以先停止旧进程，或让 Vite 自动换端口。
+如果网页开发端口被占用，可以停止旧 Vite 进程，或让 Vite 自动换端口。

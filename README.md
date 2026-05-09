@@ -2,11 +2,57 @@
 
 本地截图裁剪工具，把 Mac 截图、网页长截图或窗口截图转换成适合 Rednote / 小红书发布的竖版图片。
 
-## 开发
+## 使用
+
+当前已经支持 macOS 本地应用。
+
+已构建的应用产物：
+
+```txt
+src-tauri/target/release/bundle/macos/Rednote Screenshot Cropper.app
+src-tauri/target/release/bundle/dmg/Rednote Screenshot Cropper_0.1.0_aarch64.dmg
+```
+
+安装到系统应用目录：
+
+```bash
+ditto "src-tauri/target/release/bundle/macos/Rednote Screenshot Cropper.app" "/Applications/Rednote Screenshot Cropper.app"
+```
+
+也可以继续用网页开发模式：
 
 ```bash
 npm install
 npm run dev
+```
+
+打开：
+
+```txt
+http://127.0.0.1:5173/
+```
+
+## 开发
+
+运行测试和前端构建：
+
+```bash
+npm run test
+npm run build
+```
+
+运行 Tauri 本地应用开发模式：
+
+```bash
+source "$HOME/.cargo/env"
+npm run tauri dev
+```
+
+生成 macOS `.app` 和 `.dmg`：
+
+```bash
+source "$HOME/.cargo/env"
+npm run tauri build
 ```
 
 ## 当前 MVP
@@ -15,7 +61,9 @@ npm run dev
 - `1:1`、`3:4`、`4:5`、`9:16` 和自定义比例
 - 居中裁剪、顶部优先裁剪、手动选区、自动分段切图
 - 背景色、留白、圆角、阴影、标题
-- 导出当前图、批量导出、复制当前预览图
+- 网页端导出当前图、批量导出、复制当前预览图
+- macOS 本地应用原生保存当前 PNG、批量选择目录导出
+- macOS 应用图标和 DMG 打包
 
 ## 许可证
 
